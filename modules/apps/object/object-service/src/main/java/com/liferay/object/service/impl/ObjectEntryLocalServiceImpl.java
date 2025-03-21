@@ -48,6 +48,7 @@ import com.liferay.object.exception.DuplicateObjectEntryExternalReferenceCodeExc
 import com.liferay.object.exception.NoSuchObjectDefinitionException;
 import com.liferay.object.exception.ObjectDefinitionScopeException;
 import com.liferay.object.exception.ObjectEntryDefaultLanguageIdException;
+import com.liferay.object.exception.ObjectEntryFolderScopeException;
 import com.liferay.object.exception.ObjectEntryStatusException;
 import com.liferay.object.exception.ObjectEntryValuesException;
 import com.liferay.object.exception.ObjectRelationshipDeletionTypeException;
@@ -66,7 +67,9 @@ import com.liferay.object.internal.filter.parser.ObjectFilterParser;
 import com.liferay.object.internal.sort.SortDSLQueryVisitor;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.model.ObjectEntryFolder;
 import com.liferay.object.model.ObjectEntryTable;
+import com.liferay.object.model.ObjectEntryVersion;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectFieldSetting;
 import com.liferay.object.model.ObjectFilter;
@@ -87,6 +90,7 @@ import com.liferay.object.scope.ObjectDefinitionScoped;
 import com.liferay.object.scope.ObjectScopeProvider;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.search.StrictObjectReindexThreadLocal;
+import com.liferay.object.service.ObjectEntryVersionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
@@ -94,6 +98,7 @@ import com.liferay.object.service.ObjectStateFlowLocalService;
 import com.liferay.object.service.ObjectStateLocalService;
 import com.liferay.object.service.base.ObjectEntryLocalServiceBaseImpl;
 import com.liferay.object.service.persistence.ObjectDefinitionPersistence;
+import com.liferay.object.service.persistence.ObjectEntryFolderPersistence;
 import com.liferay.object.service.persistence.ObjectFieldPersistence;
 import com.liferay.object.service.persistence.ObjectFieldSettingPersistence;
 import com.liferay.object.service.persistence.ObjectRelationshipPersistence;
@@ -285,8 +290,8 @@ public class ObjectEntryLocalServiceImpl
 	@Override
 	public ObjectEntry addObjectEntry(
 			long userId, long groupId, long objectDefinitionId,
-			String defaultLanguageId, Map<String, Serializable> values,
-			ServiceContext serviceContext)
+			long objectEntryFolderId, String defaultLanguageId,
+			Map<String, Serializable> values, ServiceContext serviceContext)
 		throws PortalException {
 
 		serviceContext.setStrictAdd(true);
@@ -303,9 +308,12 @@ public class ObjectEntryLocalServiceImpl
 
 		_validateGroupId(groupId, objectDefinition);
 
+		_validateObjectEntryFolderId(groupId, objectEntryFolderId);
+
 		int workflowAction = serviceContext.getWorkflowAction();
 
 		_validateWorkflowAction(
+			objectDefinition.getCompanyId(),
 			objectDefinition.isEnableObjectEntryDraft(), null, workflowAction);
 
 		User user = _userLocalService.getUser(userId);
@@ -343,8 +351,7 @@ public class ObjectEntryLocalServiceImpl
 		objectEntry.setUserName(user.getFullName());
 		objectEntry.setCreateDate(new Date());
 		objectEntry.setObjectDefinitionId(objectDefinitionId);
-		objectEntry.setObjectEntryFolderId(
-			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT);
+		objectEntry.setObjectEntryFolderId(objectEntryFolderId);
 		objectEntry.setDefaultLanguageId(defaultLanguageId);
 		objectEntry.setTreePath(objectEntry.buildTreePath());
 
@@ -426,13 +433,13 @@ public class ObjectEntryLocalServiceImpl
 				clearObjectEntryIdsMap);
 		}
 
-		return objectEntry;
+		return _addObjectEntryVersion(objectEntry);
 	}
 
 	@Override
 	public ObjectEntry addObjectEntry(
 			String externalReferenceCode, long userId,
-			ObjectDefinition objectDefinition)
+			ObjectDefinition objectDefinition, long objectEntryFolderId)
 		throws PortalException {
 
 		ObjectEntry objectEntry = objectEntryPersistence.create(
@@ -448,8 +455,7 @@ public class ObjectEntryLocalServiceImpl
 
 		objectEntry.setObjectDefinitionId(
 			objectDefinition.getObjectDefinitionId());
-		objectEntry.setObjectEntryFolderId(
-			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT);
+		objectEntry.setObjectEntryFolderId(objectEntryFolderId);
 		objectEntry.setTreePath(objectEntry.buildTreePath());
 		objectEntry.setStatus(WorkflowConstants.STATUS_DRAFT);
 		objectEntry.setStatusDate(new Date());
@@ -477,8 +483,8 @@ public class ObjectEntryLocalServiceImpl
 	@Override
 	public ObjectEntry addOrUpdateObjectEntry(
 			String externalReferenceCode, long userId, long groupId,
-			long objectDefinitionId, Map<String, Serializable> values,
-			ServiceContext serviceContext)
+			long objectDefinitionId, long objectEntryFolderId,
+			Map<String, Serializable> values, ServiceContext serviceContext)
 		throws PortalException {
 
 		User user = _userLocalService.getUser(userId);
@@ -505,7 +511,8 @@ public class ObjectEntryLocalServiceImpl
 		}
 
 		objectEntry = addObjectEntry(
-			userId, groupId, objectDefinitionId, null, values, serviceContext);
+			userId, groupId, objectDefinitionId, objectEntryFolderId, null,
+			values, serviceContext);
 
 		if (Validator.isNotNull(externalReferenceCode)) {
 			objectEntry.setExternalReferenceCode(externalReferenceCode);
@@ -1634,6 +1641,7 @@ public class ObjectEntryLocalServiceImpl
 		int workflowAction = serviceContext.getWorkflowAction();
 
 		_validateWorkflowAction(
+			objectDefinition.getCompanyId(),
 			objectDefinition.isEnableObjectEntryDraft(),
 			objectEntry.getStatus(), workflowAction);
 
@@ -1661,6 +1669,14 @@ public class ObjectEntryLocalServiceImpl
 		objectEntry.setModifiedDate(serviceContext.getModifiedDate(null));
 
 		_setRootObjectEntryId(objectDefinition, objectEntry, values);
+
+		if ((workflowAction == WorkflowConstants.ACTION_SAVE_DRAFT) &&
+			!objectEntry.isPending()) {
+
+			objectEntry.setStatus(WorkflowConstants.STATUS_DRAFT);
+			objectEntry.setStatusByUserId(user.getUserId());
+			objectEntry.setStatusDate(serviceContext.getModifiedDate(null));
+		}
 
 		objectEntry.setTransientValues(transientValues);
 
@@ -1702,7 +1718,13 @@ public class ObjectEntryLocalServiceImpl
 			objectEntry, originalObjectEntry, serviceContext.getLanguageId(),
 			user);
 
-		return objectEntry;
+		if (objectEntry.isPending() || originalObjectEntry.isDraft()) {
+			_updateLatestObjectEntryVersion(objectEntry);
+
+			return objectEntry;
+		}
+
+		return _addObjectEntryVersion(objectEntry);
 	}
 
 	@Override
@@ -1881,7 +1903,19 @@ public class ObjectEntryLocalServiceImpl
 				serviceContext.getLanguageId(), user);
 		}
 
-		return objectEntry;
+		if (originalObjectEntry.isDraft() || originalObjectEntry.isPending()) {
+			List<ObjectEntryVersion> objectEntryVersions =
+				_objectEntryVersionLocalService.getObjectEntryVersions(
+					objectEntry.getObjectEntryId());
+
+			if (!objectEntryVersions.isEmpty()) {
+				_updateLatestObjectEntryVersion(objectEntry);
+			}
+
+			return objectEntry;
+		}
+
+		return _addObjectEntryVersion(objectEntry);
 	}
 
 	@Activate
@@ -2157,6 +2191,23 @@ public class ObjectEntryLocalServiceImpl
 				objectFieldColumn.getName(), (Serializable)localizedValues,
 				values);
 		}
+	}
+
+	private ObjectEntry _addObjectEntryVersion(ObjectEntry objectEntry)
+		throws PortalException {
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				objectEntry.getCompanyId(), "LPD-17564")) {
+
+			return objectEntry;
+		}
+
+		ObjectEntryVersion objectEntryVersion =
+			_objectEntryVersionLocalService.addObjectEntryVersion(objectEntry);
+
+		objectEntry.setVersion(objectEntryVersion.getVersion());
+
+		return objectEntryPersistence.update(objectEntry);
 	}
 
 	private void _addObjectRelationshipERCFieldValue(
@@ -4916,6 +4967,19 @@ public class ObjectEntryLocalServiceImpl
 		}
 	}
 
+	private void _updateLatestObjectEntryVersion(ObjectEntry objectEntry)
+		throws PortalException {
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				objectEntry.getCompanyId(), "LPD-17564")) {
+
+			return;
+		}
+
+		_objectEntryVersionLocalService.updateLatestObjectEntryVersion(
+			objectEntry);
+	}
+
 	private void _updateResourcePermissions(
 			ObjectDefinition objectDefinition, ObjectEntry objectEntry,
 			ServiceContext serviceContext)
@@ -5295,6 +5359,29 @@ public class ObjectEntryLocalServiceImpl
 
 			throw new ObjectEntryValuesException.ListTypeEntry(
 				objectField.getName());
+		}
+	}
+
+	private void _validateObjectEntryFolderId(
+			long groupId, long objectEntryFolderId)
+		throws PortalException {
+
+		if (objectEntryFolderId ==
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT) {
+
+			return;
+		}
+
+		ObjectEntryFolder objectEntryFolder =
+			_objectEntryFolderPersistence.findByPrimaryKey(objectEntryFolderId);
+
+		if (objectEntryFolder.getGroupId() != groupId) {
+			throw new ObjectEntryFolderScopeException(
+				StringBundler.concat(
+					"Group ID ", groupId,
+					" does not match parent object entry folder group ID ",
+					objectEntryFolder.getGroupId()));
 		}
 	}
 
@@ -5800,14 +5887,17 @@ public class ObjectEntryLocalServiceImpl
 	}
 
 	private void _validateWorkflowAction(
-			boolean enableObjectEntryDraft, Integer status,
+			long companyId, boolean enableObjectEntryDraft, Integer status,
 			Integer workflowAction)
 		throws PortalException {
 
-		if ((!enableObjectEntryDraft ||
-			 ((status != null) &&
-			  (status != WorkflowConstants.STATUS_DRAFT))) &&
-			(workflowAction == WorkflowConstants.ACTION_SAVE_DRAFT)) {
+		if (workflowAction != WorkflowConstants.ACTION_SAVE_DRAFT) {
+			return;
+		}
+
+		if (!enableObjectEntryDraft ||
+			((status != null) && (status != WorkflowConstants.STATUS_DRAFT) &&
+			 !FeatureFlagManagerUtil.isEnabled(companyId, "LPD-17564"))) {
 
 			throw new ObjectEntryStatusException("Draft status is not allowed");
 		}
@@ -5900,6 +5990,12 @@ public class ObjectEntryLocalServiceImpl
 
 	@Reference
 	private ObjectDefinitionPersistence _objectDefinitionPersistence;
+
+	@Reference
+	private ObjectEntryFolderPersistence _objectEntryFolderPersistence;
+
+	@Reference
+	private ObjectEntryVersionLocalService _objectEntryVersionLocalService;
 
 	@Reference
 	private ObjectFieldBusinessTypeRegistry _objectFieldBusinessTypeRegistry;

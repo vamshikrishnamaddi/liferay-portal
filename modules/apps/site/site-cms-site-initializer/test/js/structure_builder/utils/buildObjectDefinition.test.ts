@@ -8,6 +8,7 @@ import {Field} from '../../../../src/main/resources/META-INF/resources/js/struct
 
 const DATE_TIME_FIELD: Field = {
 	erc: 'datetime-field',
+	indexableConfig: {indexed: false},
 	label: {en_US: 'Date and Time Field'},
 	localized: true,
 	name: 'datetimeField',
@@ -20,10 +21,12 @@ const DATE_TIME_FIELD: Field = {
 
 const TEXT_FIELD: Field = {
 	erc: 'text-field',
+	indexableConfig: {indexed: true, indexedAsKeyword: true},
 	label: {en_US: 'Text Field'},
 	localized: false,
 	name: 'textField',
 	required: true,
+	settings: {},
 	type: 'text',
 };
 
@@ -33,27 +36,33 @@ describe('buildObjectDefinition', () => {
 			erc: 'structureERC',
 			fields: [TEXT_FIELD],
 			id: 1,
-			label: 'Structure',
+			label: {en_US: 'Structure'},
 			name: 'myStructure',
 		});
 
 		expect(result).toEqual({
+			enableObjectEntryDraft: true,
 			externalReferenceCode: 'structureERC',
 			id: 1,
 			label: {en_US: 'Structure'},
 			name: 'myStructure',
 			objectFields: [
 				{
+					DBType: 'String',
 					businessType: 'Text',
 					externalReferenceCode: 'text-field',
+					indexed: true,
+					indexedAsKeyword: true,
+					indexedLanguageId: '',
 					label: {en_US: 'Text Field'},
 					localized: false,
 					name: 'textField',
+					objectFieldSettings: [],
 					required: true,
 				},
 			],
 			pluralLabel: {en_US: 'Structure'},
-			scope: 'company',
+			scope: 'site',
 		});
 	});
 
@@ -62,19 +71,22 @@ describe('buildObjectDefinition', () => {
 			erc: 'structureERC',
 			fields: [DATE_TIME_FIELD],
 			id: 1,
-			label: 'Structure',
+			label: {en_US: 'Structure'},
 			name: 'myStructure',
 		});
 
 		expect(result).toEqual({
+			enableObjectEntryDraft: true,
 			externalReferenceCode: 'structureERC',
 			id: 1,
 			label: {en_US: 'Structure'},
 			name: 'myStructure',
 			objectFields: [
 				{
+					DBType: 'DateTime',
 					businessType: 'DateTime',
 					externalReferenceCode: 'datetime-field',
+					indexed: false,
 					label: {en_US: 'Date and Time Field'},
 					localized: true,
 					name: 'datetimeField',
@@ -85,7 +97,7 @@ describe('buildObjectDefinition', () => {
 				},
 			],
 			pluralLabel: {en_US: 'Structure'},
-			scope: 'company',
+			scope: 'site',
 		});
 	});
 });

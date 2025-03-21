@@ -57,12 +57,15 @@ create unique index IX_3966DE44 on AssetVocabulary (groupId, uuid_[$COLUMN_LENGT
 create index IX_2F7F11EE on AssetVocabulary (groupId, visibilityType);
 create index IX_55F58818 on AssetVocabulary (uuid_[$COLUMN_LENGTH:75$]);
 
+create index IX_104CE969 on AssetVocabularyGroupRel (groupId, vocabularyId);
+create unique index IX_BD51FF2A on AssetVocabularyGroupRel (uuid_[$COLUMN_LENGTH:75$], groupId, ctCollectionId);
+create index IX_65F8A72B on AssetVocabularyGroupRel (vocabularyId);
+
 create unique index IX_E7B95510 on BrowserTracker (userId);
 
 create unique index IX_B27A301F on ClassName_ (value[$COLUMN_LENGTH:200$]);
 
 create index IX_38EFE3FD on Company (logoId);
-create index IX_12566EC2 on Company (mx[$COLUMN_LENGTH:200$]);
 create unique index IX_EC00543C on Company (webId[$COLUMN_LENGTH:75$]);
 
 create unique index IX_85C63FD7 on CompanyInfo (companyId);
@@ -268,7 +271,6 @@ create index IX_4BCBAB21 on Organization_ (companyId, name[$COLUMN_LENGTH:100$],
 create index IX_418E4522 on Organization_ (companyId, parentOrganizationId);
 create index IX_396D6B42 on Organization_ (uuid_[$COLUMN_LENGTH:75$]);
 
-create index IX_2C1142E on PasswordPolicy (companyId, defaultPolicy);
 create unique index IX_3FBFA9F4 on PasswordPolicy (companyId, name[$COLUMN_LENGTH:75$]);
 create index IX_51437A01 on PasswordPolicy (uuid_[$COLUMN_LENGTH:75$]);
 
@@ -287,7 +289,7 @@ create unique index IX_7171B2E8 on PluginSetting (companyId, pluginId[$COLUMN_LE
 create unique index IX_D5E35599 on PortalPreferenceValue (portalPreferencesId, namespace[$COLUMN_LENGTH:255$], key_[$COLUMN_LENGTH:1024$], index_);
 create index IX_737DBC36 on PortalPreferenceValue (portalPreferencesId, namespace[$COLUMN_LENGTH:255$], key_[$COLUMN_LENGTH:1024$], smallValue[$COLUMN_LENGTH:255$]);
 
-create index IX_D1846D13 on PortalPreferences (ownerType, ownerId);
+create unique index IX_D1846D13 on PortalPreferences (ownerType, ownerId);
 
 create unique index IX_12B5E51D on Portlet (companyId, portletId[$COLUMN_LENGTH:200$]);
 
@@ -394,7 +396,7 @@ create index IX_241D10A4 on SocialActivitySet (userId, type_, classNameId, class
 create index IX_6D0C8733 on SocialActivitySet (userId, type_, groupId, classNameId);
 
 create index IX_384788CD on SocialActivitySetting (groupId, activityType);
-create index IX_D984AABA on SocialActivitySetting (groupId, classNameId, activityType, name[$COLUMN_LENGTH:75$]);
+create unique index IX_4FC6CD18 on SocialActivitySetting (groupId, classNameId, activityType, name[$COLUMN_LENGTH:75$], ctCollectionId);
 
 create index IX_61171E99 on SocialRelation (companyId);
 create index IX_5E1F07A2 on SocialRelation (type_, companyId);

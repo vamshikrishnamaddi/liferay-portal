@@ -25,6 +25,7 @@ import com.liferay.exportimport.kernel.service.StagingLocalService;
 import com.liferay.layout.friendly.url.LayoutFriendlyURLEntryHelper;
 import com.liferay.layout.set.model.adapter.StagedLayoutSet;
 import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.events.StartupHelperUtil;
@@ -35,7 +36,6 @@ import com.liferay.portal.kernel.exception.CompanyMxException;
 import com.liferay.portal.kernel.exception.CompanyNameException;
 import com.liferay.portal.kernel.exception.CompanyVirtualHostException;
 import com.liferay.portal.kernel.exception.ModelListenerException;
-import com.liferay.portal.kernel.exception.NoSuchPasswordPolicyException;
 import com.liferay.portal.kernel.exception.NoSuchVirtualHostException;
 import com.liferay.portal.kernel.exception.RequiredCompanyException;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
@@ -51,6 +51,7 @@ import com.liferay.portal.kernel.model.LayoutSetPrototype;
 import com.liferay.portal.kernel.model.ModelListener;
 import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.model.OrganizationConstants;
+import com.liferay.portal.kernel.model.PasswordPolicyTable;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.UserGroup;
@@ -671,18 +672,6 @@ public class CompanyLocalServiceTest {
 				user.getUserId(), group.getGroupId(), role.getRoleId()));
 	}
 
-	@Test(expected = NoSuchPasswordPolicyException.class)
-	public void testDeleteCompanyDeletesDefaultPasswordPolicy()
-		throws Exception {
-
-		Company company = addCompany();
-
-		_companyLocalService.deleteCompany(company);
-
-		_passwordPolicyLocalService.getDefaultPasswordPolicy(
-			company.getCompanyId());
-	}
-
 	@Test
 	public void testDeleteCompanyDeletesGroups() throws Exception {
 		Company company = addCompany();
@@ -731,24 +720,6 @@ public class CompanyLocalServiceTest {
 			layoutSetPrototypes.toString(), 0, layoutSetPrototypes.size());
 	}
 
-	@Test(expected = NoSuchPasswordPolicyException.class)
-	public void testDeleteCompanyDeletesNondefaultPasswordPolicies()
-		throws Throwable {
-
-		Company company = addCompany();
-
-		_companyLocalService.deleteCompany(company);
-
-		TransactionInvokerUtil.invoke(
-			_transactionConfig,
-			() -> {
-				_passwordPolicyLocalService.getPasswordPolicy(
-					company.getCompanyId(), false);
-
-				return null;
-			});
-	}
-
 	@Test
 	public void testDeleteCompanyDeletesOrganizations() throws Exception {
 		Company company = addCompany();
@@ -760,6 +731,30 @@ public class CompanyLocalServiceTest {
 			_organizationLocalService.getOrganizationsCount(
 				company.getCompanyId(),
 				OrganizationConstants.DEFAULT_PARENT_ORGANIZATION_ID));
+	}
+
+	@Test
+	public void testDeleteCompanyDeletesPasswordPolicies() throws Throwable {
+		Company company = addCompany();
+
+		_companyLocalService.deleteCompany(company);
+
+		TransactionInvokerUtil.invoke(
+			_transactionConfig,
+			() -> {
+				Assert.assertEquals(
+					0,
+					_passwordPolicyLocalService.dslQueryCount(
+						DSLQueryFactoryUtil.count(
+						).from(
+							PasswordPolicyTable.INSTANCE
+						).where(
+							PasswordPolicyTable.INSTANCE.companyId.eq(
+								company.getCompanyId())
+						)));
+
+				return null;
+			});
 	}
 
 	@Test
@@ -900,11 +895,11 @@ public class CompanyLocalServiceTest {
 	}
 
 	@Test
-	public void testExtractDBPartitionCompany() {
+	public void testExtractCompany() {
 		Assume.assumeFalse(DBPartition.isPartitionEnabled());
 
 		try {
-			_companyLocalService.extractDBPartitionCompany(1L);
+			_companyLocalService.extractCompany(1L);
 
 			Assert.fail();
 		}
@@ -915,22 +910,15 @@ public class CompanyLocalServiceTest {
 	}
 
 	@Test
-	public void testExtractDBPartitionCompanyDefaultCompany() {
+	public void testExtractCompanyDefaultCompany() {
 		try {
-			_companyLocalService.extractDBPartitionCompany(
+			_companyLocalService.extractCompany(
 				PortalInstancePool.getDefaultCompanyId());
 
 			Assert.fail();
 		}
 		catch (Exception exception) {
-			if (DBPartition.isPartitionEnabled()) {
-				Assert.assertTrue(
-					exception instanceof RequiredCompanyException);
-			}
-			else {
-				Assert.assertTrue(
-					exception instanceof UnsupportedOperationException);
-			}
+			Assert.assertTrue(exception instanceof RequiredCompanyException);
 		}
 	}
 

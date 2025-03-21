@@ -766,7 +766,7 @@ public class JenkinsResultsParserUtil {
 		try {
 			String url = null;
 
-			if (matcher.matches()) {
+			if (!isCINode() && matcher.matches()) {
 				int masterNumber = Integer.valueOf(matcher.group(1));
 
 				if (masterNumber > 40) {
@@ -2515,8 +2515,8 @@ public class JenkinsResultsParserUtil {
 		List<JenkinsMaster> jenkinsMasters = new ArrayList<>();
 
 		Pattern pattern = Pattern.compile(
-			"master\\.slaves\\((?<jenkinsMasterName>" + cohortName +
-				"-\\d+)\\)");
+			"master\\.property\\((?<jenkinsMasterName>" + cohortName +
+				"-\\d+)/executors.size\\)");
 
 		for (String buildPropertyName : buildProperties.stringPropertyNames()) {
 			Matcher matcher = pattern.matcher(buildPropertyName);
@@ -2909,6 +2909,15 @@ public class JenkinsResultsParserUtil {
 		String baseInvocationURL, String blacklist, int invokedBatchSize,
 		int minimumRAM, int maximumSlavesPerHost) {
 
+		return getMostAvailableMasterURL(
+			baseInvocationURL, blacklist, invokedBatchSize, null, minimumRAM,
+			maximumSlavesPerHost);
+	}
+
+	public static String getMostAvailableMasterURL(
+		String baseInvocationURL, String blacklist, int invokedBatchSize,
+		String jobName, int minimumRAM, int maximumSlavesPerHost) {
+
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(getJenkinsLoadBalancerURL());
@@ -2923,6 +2932,11 @@ public class JenkinsResultsParserUtil {
 		if (invokedBatchSize > 0) {
 			sb.append("&invokedJobBatchSize=");
 			sb.append(invokedBatchSize);
+		}
+
+		if (!isNullOrEmpty(jobName)) {
+			sb.append("&jobName=");
+			sb.append(fixURL(jobName));
 		}
 
 		if (minimumRAM > 0) {
@@ -2951,8 +2965,8 @@ public class JenkinsResultsParserUtil {
 			List<JenkinsMaster> availableJenkinsMasters =
 				LoadBalancerUtil.getAvailableJenkinsMasters(
 					LoadBalancerUtil.getMasterPrefix(baseInvocationURL),
-					blacklist, minimumRAM, maximumSlavesPerHost,
-					buildProperties);
+					blacklist, false, jobName, minimumRAM, maximumSlavesPerHost,
+					buildProperties, true);
 
 			Random random = new Random(getCurrentTimeMillis());
 
@@ -3659,6 +3673,12 @@ public class JenkinsResultsParserUtil {
 			return _ciNode;
 		}
 
+		if (!isNullOrEmpty(System.getenv("JENKINS_HOME"))) {
+			_ciNode = true;
+
+			return _ciNode;
+		}
+
 		String hostName = getHostName("");
 
 		try {
@@ -3683,6 +3703,23 @@ public class JenkinsResultsParserUtil {
 		}
 
 		return _ciNode;
+	}
+
+	public static boolean isCloudCINode() {
+		if (!isCINode()) {
+			return false;
+		}
+
+		String masterNetworkName = System.getenv("MASTER_NETWORK_NAME");
+
+		if (!isNullOrEmpty(masterNetworkName) &&
+			(masterNetworkName.equals("aws-network") ||
+			 masterNetworkName.equals("gcp-network"))) {
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public static boolean isDouble(String string) {

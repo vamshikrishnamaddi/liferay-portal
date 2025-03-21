@@ -6,25 +6,31 @@
 import {FieldBusinessType} from '../utils/field';
 
 export type ObjectField = {
+	DBType: string;
 	businessType: FieldBusinessType;
 	externalReferenceCode: string;
+	indexed: boolean;
+	indexedAsKeyword?: boolean;
+	indexedLanguageId?: Liferay.Language.Locale | '';
 	label: Liferay.Language.LocalizedValue<string>;
 	localized: boolean;
 	name: string;
-	objectFieldSettings?: {name: string; value: string | number}[];
+	objectFieldSettings?: {name: string; value: boolean | string | number}[];
 	required: boolean;
+	system?: boolean;
 };
 
 export type ObjectDefinition = {
+	enableObjectEntryDraft: boolean;
 	externalReferenceCode: string;
 	id?: number;
-	label: {
-		en_US: string;
-	};
+	label: Liferay.Language.LocalizedValue<string>;
 	name?: string;
 	objectFields?: ObjectField[];
-	pluralLabel: {
-		en_US: string;
+	objectFolderExternalReferenceCode?: string;
+	pluralLabel: Liferay.Language.LocalizedValue<string>;
+	scope: 'company' | 'site';
+	status?: {
+		label: string;
 	};
-	scope: 'company';
 };

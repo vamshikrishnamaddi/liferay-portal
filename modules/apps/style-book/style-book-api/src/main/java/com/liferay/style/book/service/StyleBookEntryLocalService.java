@@ -240,7 +240,8 @@ public interface StyleBookEntryLocalService
 		DynamicQuery dynamicQuery, Projection projection);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public StyleBookEntry fetchDefaultStyleBookEntry(long groupId);
+	public StyleBookEntry fetchDefaultStyleBookEntry(
+		long groupId, String themeId);
 
 	@Override
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -328,6 +329,10 @@ public interface StyleBookEntryLocalService
 	public List<StyleBookEntry> getStyleBookEntries(
 		long groupId, int start, int end,
 		OrderByComparator<StyleBookEntry> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<StyleBookEntry> getStyleBookEntries(
+		long groupId, String themeId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<StyleBookEntry> getStyleBookEntries(

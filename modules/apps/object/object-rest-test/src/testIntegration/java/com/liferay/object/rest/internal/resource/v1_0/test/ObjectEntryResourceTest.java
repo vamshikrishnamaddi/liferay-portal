@@ -36,6 +36,7 @@ import com.liferay.object.constants.ObjectActionKeys;
 import com.liferay.object.constants.ObjectActionTriggerConstants;
 import com.liferay.object.constants.ObjectDefinitionConstants;
 import com.liferay.object.constants.ObjectDefinitionSettingConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.constants.ObjectFieldValidationConstants;
@@ -4929,6 +4930,8 @@ public class ObjectEntryResourceTest {
 		ObjectEntry serviceBuilderObjectEntry =
 			_objectEntryLocalService.addObjectEntry(
 				user.getUserId(), 0, objectDefinition.getObjectDefinitionId(),
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
 				null,
 				HashMapBuilder.<String, Serializable>put(
 					"testField", true
@@ -5502,6 +5505,21 @@ public class ObjectEntryResourceTest {
 
 		_testGetObjectEntriesFilteredBySystemDate("dateCreated");
 		_testGetObjectEntriesFilteredBySystemDate("dateModified");
+
+		Locale locale = LocaleUtil.getDefault();
+
+		try {
+			LocaleUtil.setDefault(
+				LocaleUtil.SPAIN.getLanguage(), LocaleUtil.SPAIN.getCountry(),
+				LocaleUtil.SPAIN.getVariant());
+
+			_testGetObjectEntriesFilteredBySystemDate("dateCreated");
+			_testGetObjectEntriesFilteredBySystemDate("dateModified");
+		}
+		finally {
+			LocaleUtil.setDefault(
+				locale.getLanguage(), locale.getCountry(), locale.getVariant());
+		}
 	}
 
 	@Test
@@ -6571,7 +6589,10 @@ public class ObjectEntryResourceTest {
 			ObjectEntry serviceBuilderObjectEntry =
 				_objectEntryLocalService.addObjectEntry(
 					TestPropsValues.getUserId(), 0,
-					objectDefinition.getObjectDefinitionId(), null,
+					objectDefinition.getObjectDefinitionId(),
+					ObjectEntryFolderConstants.
+						PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+					null,
 					HashMapBuilder.<String, Serializable>put(
 						"authorOfGospel", true
 					).put(
@@ -10382,7 +10403,7 @@ public class ObjectEntryResourceTest {
 		HTTPTestUtil.invokeToJSONObject(
 			null,
 			String.format(
-				"%s/%d/%s/%d", endpoint3, depth1JSONObject2.getLong("id"),
+				"%s/%d/%s/%d", endpoint2, depth1JSONObject2.getLong("id"),
 				_objectRelationship2.getName(),
 				depth2JSONObject3.getLong("id")),
 			Http.Method.PUT);
@@ -10390,94 +10411,94 @@ public class ObjectEntryResourceTest {
 		HTTPTestUtil.invokeToJSONObject(
 			null,
 			String.format(
-				"%s/%d/%s/%d", endpoint3, depth1JSONObject2.getLong("id"),
+				"%s/%d/%s/%d", endpoint2, depth1JSONObject2.getLong("id"),
 				_objectRelationship2.getName(),
 				depth2JSONObject4.getLong("id")),
 			Http.Method.PUT);
 
 		try {
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_BOOLEAN));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(), _OBJECT_FIELD_NAME_DATE));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_DATE_TIME));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_DECIMAL));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_INTEGER));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_LONG_INTEGER));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_LONG_TEXT));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_MULTISELECT_PICKLIST));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_PICKLIST));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
 					_objectRelationship2.getName(),
 					_OBJECT_FIELD_NAME_PRECISION_DECIMAL));
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
@@ -10486,8 +10507,8 @@ public class ObjectEntryResourceTest {
 			// Sort by several fields
 
 			_testSortByManyToOneAndOneToManyRelationshipsCustomObjectFields(
-				endpoint1, endpoint3, jsonObject3, jsonObject4, jsonObject1,
-				jsonObject2, depth2JSONObject1, depth2JSONObject2,
+				endpoint1, endpoint3, jsonObject1, jsonObject2, jsonObject3,
+				jsonObject4, depth2JSONObject1, depth2JSONObject2,
 				depth2JSONObject3, depth2JSONObject4,
 				String.format(
 					"%s/%s/%s", _objectRelationship1.getName(),
@@ -15773,13 +15794,13 @@ public class ObjectEntryResourceTest {
 			StringBundler.concat(
 				endpoint, "?sort=",
 				URLCodec.encodeURL(
-					StringUtil.merge(fieldNames, ":desc,") + ":desc,id:asc")),
+					StringUtil.merge(fieldNames, ":desc,") + ":desc,id:desc")),
 			Http.Method.GET);
 
-		_assertItem(0, pageJSONObject, "id", expectedJSONObject3.getLong("id"));
-		_assertItem(1, pageJSONObject, "id", expectedJSONObject4.getLong("id"));
-		_assertItem(2, pageJSONObject, "id", expectedJSONObject1.getLong("id"));
-		_assertItem(3, pageJSONObject, "id", expectedJSONObject2.getLong("id"));
+		_assertItem(0, pageJSONObject, "id", expectedJSONObject4.getLong("id"));
+		_assertItem(1, pageJSONObject, "id", expectedJSONObject3.getLong("id"));
+		_assertItem(2, pageJSONObject, "id", expectedJSONObject2.getLong("id"));
+		_assertItem(3, pageJSONObject, "id", expectedJSONObject1.getLong("id"));
 	}
 
 	private void _testSortByFieldName(
@@ -15864,8 +15885,8 @@ public class ObjectEntryResourceTest {
 				Http.Method.PATCH);
 
 			_testSortByFieldName(
-				endpoint1, expectedJSONObject1, expectedJSONObject2,
-				expectedJSONObject3, expectedJSONObject4, fieldNames);
+				endpoint1, expectedJSONObject3, expectedJSONObject4,
+				expectedJSONObject1, expectedJSONObject2, fieldNames);
 		}
 		finally {
 			HTTPTestUtil.invokeToJSONObject(

@@ -28,6 +28,18 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 
 	@Override
 	protected void doUpgrade() throws Exception {
+		String fragmentEntryLinkColumnName = "plid";
+
+		if (!hasColumn("FragmentEntryLink", "plid")) {
+			fragmentEntryLinkColumnName = "classPK";
+		}
+
+		String layoutPageTemplateStructureColumnName = "plid";
+
+		if (!hasColumn("LayoutPageTemplateStructure", "plid")) {
+			layoutPageTemplateStructureColumnName = "classPK";
+		}
+
 		try (PreparedStatement preparedStatement1 = connection.prepareStatement(
 				"select * from SegmentsExperience");
 			PreparedStatement preparedStatement2 =
@@ -45,21 +57,27 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 			 PreparedStatement preparedStatement3 =
 				 AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					 connection,
-					 	"update FragmentEntryLink set segmentsExperienceId = " +
-							"? where segmentsExperienceId = ? and plid = ?");
+					 StringBundler.concat(
+						 "update FragmentEntryLink set segmentsExperienceId = ",
+						 "? where ctCollectionId = ? and segmentsExperienceId ",
+						 "= ? and ",
+						 fragmentEntryLinkColumnName, " = ?"));
 			 PreparedStatement preparedStatement4 =
 				 AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					 connection,
 					 StringBundler.concat(
 						 "update LayoutPageTemplateStructureRel set ",
-						 "segmentsExperienceId = ? where segmentsExperienceId ",
-						 "= ? and LayoutPageTemplateStructureId in (select ",
+						 "segmentsExperienceId = ? where ctCollectionId = ? ",
+						 "and segmentsExperienceId = ? and ",
+						 "LayoutPageTemplateStructureId in (select ",
 						 "LayoutPageTemplateStructureId from ",
-						 "LayoutPageTemplateStructure where plid = ?)"));
+						 "LayoutPageTemplateStructure where ",
+						 layoutPageTemplateStructureColumnName, " = ?)"));
 
 			ResultSet resultSet = preparedStatement1.executeQuery()) {
 
 			while (resultSet.next()) {
+				long ctCollectionId = resultSet.getLong("ctCollectionId");
 				long groupId = resultSet.getLong("groupId");
 				String segmentsExperienceKey = resultSet.getString(
 					"segmentsExperienceKey");
@@ -71,15 +89,14 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 
 				if ((draftLayout == null) ||
 					_existDraftLayoutSegmentsExperience(
-						groupId, segmentsExperienceKey,
+						ctCollectionId, groupId, segmentsExperienceKey,
 						draftLayout.getPlid())) {
 
 					continue;
 				}
 
 				preparedStatement2.setLong(1, 0);
-				preparedStatement2.setLong(
-					2, resultSet.getLong("ctCollectionId"));
+				preparedStatement2.setLong(2, ctCollectionId);
 
 				String uuid = PortalUUIDUtil.generate();
 
@@ -117,14 +134,16 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 					"segmentsExperienceId");
 
 				preparedStatement3.setLong(1, draftLayoutSegmentsExperienceId);
-				preparedStatement3.setLong(2, segmentsExperienceId);
-				preparedStatement3.setLong(3, draftLayout.getPlid());
+				preparedStatement3.setLong(2, ctCollectionId);
+				preparedStatement3.setLong(3, segmentsExperienceId);
+				preparedStatement3.setLong(4, draftLayout.getPlid());
 
 				preparedStatement3.addBatch();
 
 				preparedStatement4.setLong(1, draftLayoutSegmentsExperienceId);
-				preparedStatement4.setLong(2, segmentsExperienceId);
-				preparedStatement4.setLong(3, draftLayout.getPlid());
+				preparedStatement4.setLong(2, ctCollectionId);
+				preparedStatement4.setLong(3, segmentsExperienceId);
+				preparedStatement4.setLong(4, draftLayout.getPlid());
 
 				preparedStatement4.addBatch();
 			}
@@ -138,16 +157,20 @@ public class SegmentsExperienceUpgradeProcess extends UpgradeProcess {
 	}
 
 	private boolean _existDraftLayoutSegmentsExperience(
-			long groupId, String segmentsExperienceKey, long plid)
+			long ctCollectionId, long groupId, String segmentsExperienceKey,
+			long plid)
 		throws Exception {
 
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
-				"select count(*) from SegmentsExperience where groupId = ? " +
-					"and segmentsExperienceKey = ? and plid = ?")) {
+				StringBundler.concat(
+					"select count(*) from SegmentsExperience where ",
+					"ctCollectionId = ? and groupId = ? and ",
+					"segmentsExperienceKey = ? and plid = ?"))) {
 
-			preparedStatement.setLong(1, groupId);
-			preparedStatement.setString(2, segmentsExperienceKey);
-			preparedStatement.setLong(3, plid);
+			preparedStatement.setLong(1, ctCollectionId);
+			preparedStatement.setLong(2, groupId);
+			preparedStatement.setString(3, segmentsExperienceKey);
+			preparedStatement.setLong(4, plid);
 
 			try (ResultSet resultSet = preparedStatement.executeQuery()) {
 				while (resultSet.next()) {

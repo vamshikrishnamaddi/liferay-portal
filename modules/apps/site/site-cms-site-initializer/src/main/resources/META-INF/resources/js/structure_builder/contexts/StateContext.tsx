@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {isNullOrUndefined} from '@liferay/layout-js-components-web';
 import {objectDefinitionUtils} from '@liferay/object-js-components-web';
 import React, {
 	Dispatch,
@@ -15,21 +16,29 @@ import React, {
 import {Field} from '../utils/field';
 import findAvailableFieldName from '../utils/findAvailableFieldName';
 import getRandomId from '../utils/getRandomId';
+import getUuid from '../utils/getUuid';
+import isFieldInvalid from '../utils/isFieldInvalid';
+import isStructureInvalid from '../utils/isStructureInvalid';
+import openDeletionModal from '../utils/openDeletionModal';
 
 const DEFAULT_STRUCTURE_LABEL = Liferay.Language.get('untitled-structure');
 
 type Status = 'new' | 'draft' | 'published';
 
+export type Uuid = string & {__brand: 'Uuid'};
+
 export type State = {
 	erc: string;
 	error: string | null;
-	fields: Map<string, Field>;
+	fields: Map<Uuid, Field>;
 	id: number | null;
-	label: string;
+	invalids: Set<Uuid>;
+	label: Liferay.Language.LocalizedValue<string>;
 	name: string;
 	publishedFields: Set<Field['name']>;
-	selection: Field['name'][];
+	selection: Uuid[];
 	status: Status;
+	uuid: Uuid;
 };
 
 const INITIAL_STATE: State = {
@@ -37,11 +46,15 @@ const INITIAL_STATE: State = {
 	error: null,
 	fields: new Map(),
 	id: null,
-	label: DEFAULT_STRUCTURE_LABEL,
+	invalids: new Set(),
+	label: {
+		[Liferay.ThemeDisplay.getDefaultLanguageId()]: DEFAULT_STRUCTURE_LABEL,
+	},
 	name: objectDefinitionUtils.normalizeName(DEFAULT_STRUCTURE_LABEL),
 	publishedFields: new Set(),
 	selection: [],
 	status: 'new',
+	uuid: getUuid(),
 };
 
 type AddFieldAction = {field: Field; type: 'add-field'};
@@ -52,7 +65,9 @@ type CreateStructureAction = {
 	type: 'create-structure';
 };
 
-type DeleteFieldAction = {fieldName: Field['name']; type: 'delete-field'};
+type DeleteFieldAction = {type: 'delete-field'; uuid: Uuid};
+
+type DeleteSelectionAction = {type: 'delete-selection'};
 
 type PublishStructureAction = {type: 'publish-structure'};
 
@@ -62,8 +77,6 @@ type SaveStructureAction = {
 
 type SetErrorAction = {error: string | null; type: 'set-error'};
 
-type SetLabelAction = {label: string; type: 'set-label'};
-
 type SetSelection = {
 	selection: State['selection'];
 	type: 'set-selection';
@@ -71,16 +84,20 @@ type SetSelection = {
 
 type UpdateFieldAction = {
 	erc?: string;
+	indexableConfig?: Field['indexableConfig'];
 	label?: Liferay.Language.LocalizedValue<string>;
 	localized?: boolean;
-	name: string;
+	name?: string;
 	newName?: string;
 	required?: boolean;
+	settings?: Field['settings'];
 	type: 'update-field';
+	uuid: Uuid;
 };
 
 type UpdateStructureAction = {
 	erc?: string;
+	label?: Liferay.Language.LocalizedValue<string>;
 	name?: string;
 	type: 'update-structure';
 };
@@ -89,10 +106,10 @@ export type Action =
 	| AddFieldAction
 	| CreateStructureAction
 	| DeleteFieldAction
+	| DeleteSelectionAction
 	| PublishStructureAction
 	| SaveStructureAction
 	| SetErrorAction
-	| SetLabelAction
 	| SetSelection
 	| UpdateFieldAction
 	| UpdateStructureAction;
@@ -106,29 +123,35 @@ function reducer(state: State, action: Action): State {
 
 			const nextFields = new Map(state.fields);
 
-			nextFields.set(name, {...field, name});
+			nextFields.set(field.uuid, {...field, name});
 
 			return {...state, fields: nextFields};
 		}
 		case 'create-structure': {
 			return {
 				...state,
-				error: null,
+				error: INITIAL_STATE.error,
 				id: action.id,
 				name: action.name,
 				status: 'draft' as Status,
 			};
 		}
 		case 'delete-field': {
-			const {fieldName} = action;
+			if (state.fields.size === 1) {
+				openDeletionModal();
+
+				return state;
+			}
+
+			const {uuid} = action;
 
 			const nextFields = new Map(state.fields);
 
-			nextFields.delete(fieldName);
+			nextFields.delete(uuid);
 
 			let nextState = {...state, fields: nextFields};
 
-			if (state.selection.includes(fieldName)) {
+			if (state.selection.includes(uuid)) {
 				nextState = {
 					...nextState,
 					selection: INITIAL_STATE.selection,
@@ -137,10 +160,29 @@ function reducer(state: State, action: Action): State {
 
 			return nextState;
 		}
+		case 'delete-selection': {
+			const nextFields = new Map(state.fields);
+
+			for (const fieldName of state.selection) {
+				nextFields.delete(fieldName);
+			}
+
+			if (nextFields.size === 0) {
+				openDeletionModal();
+
+				return state;
+			}
+
+			return {
+				...state,
+				fields: nextFields,
+				selection: INITIAL_STATE.selection,
+			};
+		}
 		case 'publish-structure': {
 			return {
 				...state,
-				error: null,
+				error: INITIAL_STATE.error,
 				publishedFields: new Set(
 					Array.from(state.fields.values()).map((field) => field.name)
 				),
@@ -158,25 +200,36 @@ function reducer(state: State, action: Action): State {
 
 			return {
 				...state,
-				error: null,
+				error: INITIAL_STATE.error,
 				publishedFields: nextPublishedFields,
 			};
 		}
 		case 'set-error':
-			return {...state, error: action.error};
-		case 'set-label':
-			return {...state, label: action.label};
+			return {
+				...state,
+				error: action.error,
+				selection: [state.uuid],
+			};
 		case 'set-selection': {
 			const {selection} = action;
 
 			return {...state, selection};
 		}
 		case 'update-field': {
-			const {erc, label, localized, name, newName, required} = action;
+			const {
+				erc,
+				indexableConfig,
+				label,
+				localized,
+				name,
+				required,
+				settings,
+				uuid,
+			} = action;
 
-			const nextFields = new Map(state.fields);
+			const nextFields: State['fields'] = new Map(state.fields);
 
-			const field = nextFields.get(name);
+			const field = nextFields.get(uuid);
 
 			if (!field) {
 				return state;
@@ -185,41 +238,68 @@ function reducer(state: State, action: Action): State {
 			const nextField = {
 				...field,
 				erc: erc ?? field.erc,
+				indexableConfig: indexableConfig ?? field.indexableConfig,
 				label: label ?? field.label,
 				localized: localized ?? field.localized,
-				name: newName ?? field.name,
+				name: name ?? field.name,
 				required: required ?? field.required,
+				settings: settings ?? field.settings,
 			};
 
-			if (newName) {
-				nextFields.delete(name);
-			}
+			nextFields.set(nextField.uuid, nextField);
 
-			nextFields.set(nextField.name, nextField);
+			const invalids = new Set(state.invalids);
+
+			if (isFieldInvalid(nextField)) {
+				invalids.add(nextField.uuid);
+			}
+			else {
+				invalids.delete(nextField.uuid);
+			}
 
 			return {
 				...state,
 				fields: nextFields,
-				selection: [nextField.name],
+				invalids,
+				selection: [nextField.uuid],
 			};
 		}
 		case 'update-structure': {
 			let nextErc = state.erc;
+			let nextLabel = state.label;
 			let nextName = state.name;
 
-			if (action.erc) {
+			if (!isNullOrUndefined(action.erc)) {
 				nextErc = action.erc;
 			}
 
-			if (action.name) {
+			if (!isNullOrUndefined(action.label)) {
+				nextLabel = action.label;
+			}
+
+			if (!isNullOrUndefined(action.name)) {
 				nextName = action.name;
 			}
 
-			return {
+			const nextState = {
 				...state,
 				erc: nextErc,
-				error: null,
+				label: nextLabel,
 				name: nextName,
+			};
+
+			const invalids = new Set(state.invalids);
+
+			if (isStructureInvalid(nextState)) {
+				invalids.add(state.uuid);
+			}
+			else {
+				invalids.delete(state.uuid);
+			}
+
+			return {
+				...nextState,
+				invalids,
 			};
 		}
 		default:
@@ -234,12 +314,14 @@ const StateContext = createContext<{dispatch: Dispatch<Action>; state: State}>({
 
 export default function StateContextProvider({
 	children,
+	initialState,
 }: {
 	children: ReactNode;
+	initialState: State | null;
 }) {
 	const [state, dispatch] = useReducer<React.Reducer<State, Action>>(
 		reducer,
-		INITIAL_STATE
+		initialState ?? INITIAL_STATE
 	);
 
 	return (

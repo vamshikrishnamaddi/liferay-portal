@@ -3,24 +3,27 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
-import {API} from '@liferay/object-js-components-web';
 import {ManagementToolbar, openToast} from 'frontend-js-components-web';
-import React from 'react';
+import React, {useCallback} from 'react';
 
 import {useSelector, useStateDispatch} from '../contexts/StateContext';
+import selectInvalids from '../selectors/selectInvalids';
+import selectSelection from '../selectors/selectSelection';
 import selectStructureERC from '../selectors/selectStructureERC';
 import selectStructureFields from '../selectors/selectStructureFields';
 import selectStructureId from '../selectors/selectStructureId';
 import selectStructureLabel from '../selectors/selectStructureLabel';
+import selectStructureLocalizedLabel from '../selectors/selectStructureLocalizedLabel';
 import selectStructureName from '../selectors/selectStructureName';
 import selectStructureStatus from '../selectors/selectStructureStatus';
 import StructureService from '../services/StructureService';
+import focusInvalidInput from '../utils/focusInvalidInput';
+import AsyncButton from './AsyncButton';
 
 export default function ManagementBar() {
-	const label = useSelector(selectStructureLabel);
+	const label = useSelector(selectStructureLocalizedLabel);
 	const status = useSelector(selectStructureStatus);
 
 	return (
@@ -69,10 +72,12 @@ function SaveButton() {
 	const dispatch = useStateDispatch();
 	const fields = useSelector(selectStructureFields);
 	const label = useSelector(selectStructureLabel);
+	const localizedLabel = useSelector(selectStructureLocalizedLabel);
 	const status = useSelector(selectStructureStatus);
 	const structureId = useSelector(selectStructureId);
 	const structureName = useSelector(selectStructureName);
 	const structureERC = useSelector(selectStructureERC);
+	const validate = useValidate();
 
 	const create = async () => {
 		const {id, name} = await StructureService.createStructure({
@@ -85,7 +90,7 @@ function SaveButton() {
 		openToast({
 			message: Liferay.Util.sub(
 				Liferay.Language.get('x-was-created-successfully'),
-				label
+				localizedLabel
 			),
 			type: 'success',
 		});
@@ -105,7 +110,7 @@ function SaveButton() {
 		openToast({
 			message: Liferay.Util.sub(
 				Liferay.Language.get('x-was-updated-successfully'),
-				label
+				localizedLabel
 			),
 			type: 'success',
 		});
@@ -114,6 +119,12 @@ function SaveButton() {
 	};
 
 	const onSave = async () => {
+		const valid = validate();
+
+		if (!valid) {
+			return;
+		}
+
 		try {
 			if (status === 'new') {
 				await create();
@@ -123,20 +134,18 @@ function SaveButton() {
 			}
 		}
 		catch (error) {
-			const {message} = error as API.ErrorDetails;
+			const {message} = error as Error;
 
 			dispatch({error: message, type: 'set-error'});
 		}
 	};
 
 	return (
-		<ClayButton
+		<AsyncButton
 			displayType={status === 'published' ? 'primary' : 'secondary'}
+			label={Liferay.Language.get('save')}
 			onClick={onSave}
-			size="sm"
-		>
-			{Liferay.Language.get('save')}
-		</ClayButton>
+		/>
 	);
 }
 
@@ -146,14 +155,22 @@ function PublishButton() {
 	const fields = useSelector(selectStructureFields);
 	const id = useSelector(selectStructureId);
 	const label = useSelector(selectStructureLabel);
+	const localizedLabel = useSelector(selectStructureLocalizedLabel);
 	const name = useSelector(selectStructureName);
 	const status = useSelector(selectStructureStatus);
+	const validate = useValidate();
 
 	if (status === 'published') {
 		return null;
 	}
 
 	const onPublish = async () => {
+		const valid = validate();
+
+		if (!valid) {
+			return;
+		}
+
 		try {
 			await StructureService.updateStructure({
 				erc,
@@ -168,7 +185,7 @@ function PublishButton() {
 			openToast({
 				message: Liferay.Util.sub(
 					Liferay.Language.get('x-was-published-successfully'),
-					label
+					localizedLabel
 				),
 				type: 'success',
 			});
@@ -176,20 +193,46 @@ function PublishButton() {
 			dispatch({type: 'publish-structure'});
 		}
 		catch (error) {
-			const {message} = error as API.ErrorDetails;
+			const {message} = error as Error;
 
 			dispatch({error: message, type: 'set-error'});
 		}
 	};
 
 	return (
-		<ClayButton
+		<AsyncButton
 			disabled={status === 'new'}
 			displayType="primary"
+			label={Liferay.Language.get('publish')}
 			onClick={onPublish}
-			size="sm"
-		>
-			{Liferay.Language.get('publish')}
-		</ClayButton>
+		/>
 	);
+}
+
+function useValidate() {
+	const dispatch = useStateDispatch();
+	const invalids = useSelector(selectInvalids);
+	const selection = useSelector(selectSelection);
+
+	return useCallback(() => {
+		if (!invalids.size) {
+			return true;
+		}
+
+		const [uuid] = [...invalids];
+
+		const isSelected = selection.length === 1 && selection.includes(uuid);
+
+		if (isSelected) {
+			focusInvalidInput();
+		}
+		else {
+			dispatch({
+				selection: [uuid],
+				type: 'set-selection',
+			});
+		}
+
+		return false;
+	}, [dispatch, invalids, selection]);
 }

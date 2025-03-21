@@ -160,6 +160,27 @@
 		},
 		{
 			"DBType": "String",
+			"businessType": "Text",
+			"indexed": true,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "en_US",
+			"label": {
+				"en_US": "Associated Tickets"
+			},
+			"localized": false,
+			"name": "associatedTickets",
+			"objectFieldSettings": [
+			],
+			"readOnly": "false",
+			"readOnlyConditionExpression": "",
+			"required": false,
+			"state": false,
+			"system": false,
+			"type": "String",
+			"unique": false
+		},
+		{
+			"DBType": "String",
 			"businessType": "Picklist",
 			"indexed": true,
 			"indexedAsKeyword": false,
@@ -328,6 +349,28 @@
 			"listTypeDefinitionExternalReferenceCode": "C_BUSINESS_EVENT_TYPES",
 			"localized": false,
 			"name": "eventType",
+			"objectFieldSettings": [
+			],
+			"readOnly": "false",
+			"readOnlyConditionExpression": "",
+			"required": false,
+			"state": false,
+			"system": false,
+			"type": "String",
+			"unique": false
+		},
+		{
+			"DBType": "String",
+			"businessType": "Picklist",
+			"indexed": true,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "en_US",
+			"label": {
+				"en_US": "Time Zone"
+			},
+			"listTypeDefinitionExternalReferenceCode": "GMT-TIME-ZONES",
+			"localized": false,
+			"name": "timeZone",
 			"objectFieldSettings": [
 			],
 			"readOnly": "false",

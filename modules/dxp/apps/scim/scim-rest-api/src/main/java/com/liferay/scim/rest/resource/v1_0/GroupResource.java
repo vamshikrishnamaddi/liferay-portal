@@ -5,8 +5,6 @@
 
 package com.liferay.scim.rest.resource.v1_0;
 
-import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
@@ -47,7 +45,9 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface GroupResource {
 
-	public Object getV2Groups(Integer count, Integer startIndex, Filter filter)
+	public Object getV2Groups(
+			Integer count, String excludedAttributes, Integer startIndex,
+			com.liferay.portal.kernel.search.filter.Filter filter)
 		throws Exception;
 
 	public Response postV2Group(Group group) throws Exception;
@@ -57,7 +57,8 @@ public interface GroupResource {
 
 	public Response deleteV2Group(String id) throws Exception;
 
-	public Object getV2GroupById(String id) throws Exception;
+	public Object getV2GroupById(String id, String excludedAttributes)
+		throws Exception;
 
 	public Response patchV2Group(String id, PatchOp patchOp) throws Exception;
 
@@ -85,7 +86,8 @@ public interface GroupResource {
 		com.liferay.portal.kernel.model.User contextUser);
 
 	public void setExpressionConvert(
-		ExpressionConvert<Filter> expressionConvert);
+		ExpressionConvert<com.liferay.portal.kernel.search.filter.Filter>
+			expressionConvert);
 
 	public void setFilterParserProvider(
 		FilterParserProvider filterParserProvider);
@@ -102,19 +104,23 @@ public interface GroupResource {
 
 	public void setSortParserProvider(SortParserProvider sortParserProvider);
 
-	public default Filter toFilter(String filterString) {
+	public default com.liferay.portal.kernel.search.filter.Filter toFilter(
+		String filterString) {
+
 		return toFilter(
 			filterString, Collections.<String, List<String>>emptyMap());
 	}
 
-	public default Filter toFilter(
+	public default com.liferay.portal.kernel.search.filter.Filter toFilter(
 		String filterString, Map<String, List<String>> multivaluedMap) {
 
 		return null;
 	}
 
-	public default Sort[] toSorts(String sortsString) {
-		return new Sort[0];
+	public default com.liferay.portal.kernel.search.Sort[] toSorts(
+		String sortsString) {
+
+		return new com.liferay.portal.kernel.search.Sort[0];
 	}
 
 	@ProviderType

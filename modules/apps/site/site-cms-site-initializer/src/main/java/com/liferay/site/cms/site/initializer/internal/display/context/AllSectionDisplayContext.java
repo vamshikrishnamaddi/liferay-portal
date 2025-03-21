@@ -7,7 +7,8 @@ package com.liferay.site.cms.site.initializer.internal.display.context;
 
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
-import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenuBuilder;
+import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.service.ObjectDefinitionService;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
@@ -31,51 +32,38 @@ public class AllSectionDisplayContext extends BaseSectionDisplayContext {
 
 	public AllSectionDisplayContext(
 		CMSSiteInitializerConfiguration cmsSiteInitializerConfiguration,
-		HttpServletRequest httpServletRequest) {
+		HttpServletRequest httpServletRequest,
+		ObjectDefinitionService objectDefinitionService) {
 
 		super(cmsSiteInitializerConfiguration, httpServletRequest);
+
+		_objectDefinitionService = objectDefinitionService;
 	}
 
 	@Override
 	public CreationMenu getCreationMenu() {
-		return CreationMenuBuilder.addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("forms");
-				dropdownItem.setLabel(
-					LanguageUtil.get(httpServletRequest, "basic-content"));
+		return new CreationMenu() {
+			{
+				for (ObjectDefinition objectDefinition :
+						_objectDefinitionService.getCMSObjectDefinitions(
+							themeDisplay.getCompanyId(),
+							new String[] {
+								"L_CMS_CONTENT_STRUCTURES", "L_CMS_FILE_TYPES"
+							})) {
+
+					addPrimaryDropdownItem(
+						dropdownItem -> {
+							dropdownItem.setHref(
+								getAddStructuredContentItemURL(
+									objectDefinition.getObjectDefinitionId()));
+							dropdownItem.setIcon("forms");
+							dropdownItem.setLabel(
+								objectDefinition.getLabel(
+									themeDisplay.getLocale()));
+						});
+				}
 			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("upload");
-				dropdownItem.setLabel(
-					LanguageUtil.get(httpServletRequest, "single-file"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("upload-multiple");
-				dropdownItem.setLabel(
-					LanguageUtil.get(httpServletRequest, "multiple-files"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("blogs");
-				dropdownItem.setLabel(
-					LanguageUtil.get(httpServletRequest, "blog"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("wiki");
-				dropdownItem.setLabel(
-					LanguageUtil.get(httpServletRequest, "knowledge-base"));
-			}
-		).addPrimaryDropdownItem(
-			dropdownItem -> {
-				dropdownItem.setIcon("video");
-				dropdownItem.setLabel(
-					LanguageUtil.get(
-						httpServletRequest, "external-video-shortcut"));
-			}
-		).build();
+		};
 	}
 
 	@Override
@@ -140,5 +128,7 @@ public class AllSectionDisplayContext extends BaseSectionDisplayContext {
 			LiferayWindowState.POP_UP
 		).buildString();
 	}
+
+	private final ObjectDefinitionService _objectDefinitionService;
 
 }

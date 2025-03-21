@@ -614,6 +614,7 @@ const FrontendDataSet = ({
 				deselectItems={(items) => deselectItems(items)}
 				fluid={style === 'fluid'}
 				items={items}
+				onBulkActionsClear={() => deselectItems(selectedItemsValue)}
 				selectItems={(items) => selectItems(items)}
 				selectedItems={selectedItems}
 				selectedItemsKey={selectedItemsKey}
@@ -1029,7 +1030,7 @@ const FrontendDataSet = ({
 							<div className="data-set data-set-fluid">
 								{managementBar}
 
-								<div className="container-fluid container-xl mt-3">
+								<div className="container-fluid mt-3">
 									{view}
 
 									{paginationComponent}

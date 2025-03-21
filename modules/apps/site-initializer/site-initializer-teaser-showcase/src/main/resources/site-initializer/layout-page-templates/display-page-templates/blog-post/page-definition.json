@@ -5,6 +5,7 @@
 				"definition": {
 					"indexed": true,
 					"layout": {
+						"widthType": "Fixed"
 					},
 					"name": "Blog Post Page"
 				},
@@ -338,15 +339,9 @@
 	"settings": {
 		"colorSchemeName": "01",
 		"masterPage": {
-			"key": "primary-master-page"
+			"key": "primary"
 		},
-		"themeName": "Classic",
-		"themeSettings": {
-			"lfr-theme:regular:show-footer": "false",
-			"lfr-theme:regular:show-header": "false",
-			"lfr-theme:regular:show-header-search": "false",
-			"lfr-theme:regular:wrap-widget-page-content": "false"
-		}
+		"themeName": "Dialect"
 	},
 	"version": 1.1
 }

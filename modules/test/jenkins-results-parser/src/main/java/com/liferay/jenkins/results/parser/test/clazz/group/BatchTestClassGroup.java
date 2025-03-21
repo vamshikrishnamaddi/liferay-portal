@@ -359,6 +359,23 @@ public abstract class BatchTestClassGroup extends BaseTestClassGroup {
 			return jobPropertyValue;
 		}
 
+		if (JenkinsResultsParserUtil.isCloudCINode()) {
+			try {
+				Properties buildProperties =
+					JenkinsResultsParserUtil.getBuildProperties();
+
+				if (buildProperties.containsKey(
+						"master.auto.scaling.group.name")) {
+
+					return buildProperties.getProperty(
+						"master.auto.scaling.group.name");
+				}
+			}
+			catch (IOException ioException) {
+				throw new RuntimeException(ioException);
+			}
+		}
+
 		return SLAVE_LABEL_DEFAULT;
 	}
 
@@ -739,6 +756,10 @@ public abstract class BatchTestClassGroup extends BaseTestClassGroup {
 	}
 
 	protected long getTargetAxisDuration() {
+		if (_isIgnoreTargetAxisDuration()) {
+			return 0;
+		}
+
 		GitWorkingDirectory gitWorkingDirectory =
 			getPortalGitWorkingDirectory();
 
@@ -1215,6 +1236,21 @@ public abstract class BatchTestClassGroup extends BaseTestClassGroup {
 		_testTaskHistories.put(testName, testHistory.getTestTaskHistory());
 
 		return _testTaskHistories.get(testName);
+	}
+
+	private boolean _isIgnoreTargetAxisDuration() {
+		JobProperty jobProperty = getJobProperty(
+			"test.batch.ignore.target.axis.duration");
+
+		String jobPropertyValue = jobProperty.getValue();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(jobPropertyValue)) {
+			return false;
+		}
+
+		recordJobProperty(jobProperty);
+
+		return Boolean.valueOf(jobPropertyValue);
 	}
 
 	private List<List<AxisTestClassGroup>> _partitionByMaxChildren(

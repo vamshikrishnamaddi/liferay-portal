@@ -285,8 +285,11 @@ public class StyleBookEntryLocalServiceWrapper
 	}
 
 	@Override
-	public StyleBookEntry fetchDefaultStyleBookEntry(long groupId) {
-		return _styleBookEntryLocalService.fetchDefaultStyleBookEntry(groupId);
+	public StyleBookEntry fetchDefaultStyleBookEntry(
+		long groupId, String themeId) {
+
+		return _styleBookEntryLocalService.fetchDefaultStyleBookEntry(
+			groupId, themeId);
 	}
 
 	@Override
@@ -429,6 +432,14 @@ public class StyleBookEntryLocalServiceWrapper
 
 		return _styleBookEntryLocalService.getStyleBookEntries(
 			groupId, start, end, orderByComparator);
+	}
+
+	@Override
+	public java.util.List<StyleBookEntry> getStyleBookEntries(
+		long groupId, String themeId) {
+
+		return _styleBookEntryLocalService.getStyleBookEntries(
+			groupId, themeId);
 	}
 
 	@Override

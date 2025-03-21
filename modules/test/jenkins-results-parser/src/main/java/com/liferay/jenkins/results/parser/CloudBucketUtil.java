@@ -33,26 +33,15 @@ public class CloudBucketUtil {
 	public static void copyGCPFile(String destination, String source)
 		throws IOException {
 
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("gcloud storage cp ");
-		sb.append(source);
-		sb.append(" ");
-		sb.append(destination);
-
 		_executeCommands(
-			_getGCPAuthenticationCommand(destination, source), sb.toString());
+			_getGCPAuthenticationCommand(destination, source),
+			_getFileTransferCommand("gcloud storage cp", destination, source));
 	}
 
 	public static void copyS3File(String destination, String source) {
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("aws s3 cp ");
-		sb.append(source);
-		sb.append(" ");
-		sb.append(destination);
-
-		_executeCommands(sb.toString());
+		_executeCommands(
+			_getFileTransferCommand(
+				"aws s3 cp --no-progress", destination, source));
 	}
 
 	public static String getSignedURL(int duration, String file, String url)
@@ -92,7 +81,7 @@ public class CloudBucketUtil {
 
 		Process process = JenkinsResultsParserUtil.executeBashCommands(
 			true, _getGCPAuthenticationCommand(path, path),
-			"gcloud storage ls " + path);
+			"gcloud storage ls " + _escapeParentheses(path));
 
 		return JenkinsResultsParserUtil.readInputStream(
 			process.getInputStream());
@@ -102,7 +91,7 @@ public class CloudBucketUtil {
 		throws IOException, TimeoutException {
 
 		Process process = JenkinsResultsParserUtil.executeBashCommands(
-			true, "aws s3 ls " + path);
+			true, "aws s3 ls " + _escapeParentheses(path));
 
 		return JenkinsResultsParserUtil.readInputStream(
 			process.getInputStream());
@@ -111,26 +100,23 @@ public class CloudBucketUtil {
 	public static void syncGCPFiles(String destination, String source)
 		throws IOException {
 
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("gcloud storage rsync --recursive ");
-		sb.append(source);
-		sb.append(" ");
-		sb.append(destination);
-
 		_executeCommands(
-			_getGCPAuthenticationCommand(destination, source), sb.toString());
+			_getGCPAuthenticationCommand(destination, source),
+			_getFileTransferCommand(
+				"gcloud storage rsync --recursive", destination, source));
 	}
 
 	public static void syncS3Files(String destination, String source) {
-		StringBuilder sb = new StringBuilder();
+		_executeCommands(
+			_getFileTransferCommand(
+				"aws s3 sync --no-progress", destination, source));
+	}
 
-		sb.append("aws s3 sync ");
-		sb.append(source);
-		sb.append(" ");
-		sb.append(destination);
+	private static String _escapeParentheses(String s) {
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
 
-		_executeCommands(sb.toString());
+		return s;
 	}
 
 	private static void _executeCommands(String... commands) {
@@ -155,6 +141,20 @@ public class CloudBucketUtil {
 
 			throw new RuntimeException(exception);
 		}
+	}
+
+	private static String _getFileTransferCommand(
+		String command, String destination, String source) {
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(command);
+		sb.append(" ");
+		sb.append(_escapeParentheses(source));
+		sb.append(" ");
+		sb.append(_escapeParentheses(destination));
+
+		return sb.toString();
 	}
 
 	private static String _getGCPAuthenticationCommand(

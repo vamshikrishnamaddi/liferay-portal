@@ -28,15 +28,38 @@ export interface IAccountSubscriptionGroup {
 }
 
 export interface IBusinessEvent {
+	actualGoLiveDate?: string;
+	actualGoLiveDateTime?: string;
+	actualGoLiveTime?: string;
 	associatedTickets?: any;
-	currentLiferayVersion?: {name: string};
+	currentLiferayVersion?: {
+		key: string;
+		name: string;
+	};
+	description?: string;
 	details?: string;
-	eventStatus?: {name: string};
-	eventType?: {name: string};
+	eventStatus?: {
+		key: string;
+		name: string;
+	};
+	eventType?: {
+		key: string;
+		name: string;
+	};
 	id?: number;
 	name?: string;
-	newLiferayVersion?: {name: string};
-	targetGoLiveDateTime?: Date | string;
+	newLiferayVersion?: {
+		key: string;
+		name: string;
+	};
+	r_accountEntryToBusinessEvents_accountEntryId?: number;
+	targetGoLiveDate?: string;
+	targetGoLiveDateTime?: string;
+	targetGoLiveTime?: string;
+	timeZone?: {
+		key: string;
+		name: string;
+	};
 }
 
 export interface IKoroneikiAccount {
@@ -60,6 +83,12 @@ export interface IKoroneikiAccount {
 	slaFuture?: string;
 	slaFutureStartDate?: string;
 	status: string;
+}
+
+export interface IOption {
+	disabled?: boolean;
+	label: string;
+	value: string | number;
 }
 
 export interface IOrganizationBrief {

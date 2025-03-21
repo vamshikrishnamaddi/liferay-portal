@@ -180,6 +180,17 @@ create table AssetVocabulary (
 	primary key (vocabularyId, ctCollectionId)
 );
 
+create table AssetVocabularyGroupRel (
+	mvccVersion LONG default 0 not null,
+	ctCollectionId LONG default 0 not null,
+	uuid_ VARCHAR(75) null,
+	assetVocabularyGroupRelId LONG not null,
+	groupId LONG,
+	companyId LONG,
+	vocabularyId LONG,
+	primary key (assetVocabularyGroupRelId, ctCollectionId)
+);
+
 create table BrowserTracker (
 	mvccVersion LONG default 0 not null,
 	browserTrackerId LONG not null primary key,
@@ -1248,6 +1259,7 @@ create table Role_ (
 	description TEXT null,
 	type_ INTEGER,
 	subtype VARCHAR(75) null,
+	status INTEGER,
 	primary key (roleId, ctCollectionId)
 );
 

@@ -161,9 +161,6 @@
 		<finder name="WebId" return-type="Company" unique="true">
 			<finder-column name="webId" />
 		</finder>
-		<finder name="Mx" return-type="Company">
-			<finder-column name="mx" />
-		</finder>
 		<finder name="LogoId" return-type="Collection">
 			<finder-column name="logoId" />
 		</finder>
@@ -1363,10 +1360,6 @@
 		<finder name="CompanyId" return-type="Collection">
 			<finder-column name="companyId" />
 		</finder>
-		<finder name="C_DP" return-type="PasswordPolicy">
-			<finder-column name="companyId" />
-			<finder-column name="defaultPolicy" />
-		</finder>
 		<finder name="C_N" return-type="PasswordPolicy" unique="true">
 			<finder-column name="companyId" />
 			<finder-column name="name" />
@@ -1532,7 +1525,7 @@
 		<finder name="OwnerType" return-type="Collection">
 			<finder-column name="ownerType" />
 		</finder>
-		<finder name="O_O" return-type="PortalPreferences">
+		<finder name="O_O" return-type="PortalPreferences" unique="true">
 			<finder-column name="ownerId" />
 			<finder-column name="ownerType" />
 		</finder>
@@ -2198,6 +2191,7 @@
 		<column localized="true" name="description" type="String" />
 		<column name="type" type="int" />
 		<column name="subtype" type="String" />
+		<column name="status" type="int" />
 
 		<!-- Relationships -->
 

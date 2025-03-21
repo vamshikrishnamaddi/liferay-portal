@@ -35,6 +35,7 @@ function BulkActions({
 	fluid,
 	handleCheckboxClick,
 	items,
+	onClear,
 	pageSelectedItemsValue,
 	selectItems,
 	selectedItems,
@@ -228,7 +229,7 @@ function BulkActions({
 				<nav className="management-bar management-bar-primary navbar navbar-expand-md pb-2 pt-2 subnav-tbar">
 					<div
 						className={classNames(
-							'container-fluid container-fluid-max-xl py-1',
+							'container-fluid py-1',
 							!fluid && 'px-0'
 						)}
 					>
@@ -269,6 +270,19 @@ function BulkActions({
 												total
 											)}
 								</span>
+
+								{Liferay.FeatureFlags['LPD-42570'] && (
+									<ClayLink
+										className="ml-3"
+										href="#"
+										onClick={(event) => {
+											event.preventDefault();
+											onClear();
+										}}
+									>
+										{Liferay.Language.get('clear')}
+									</ClayLink>
+								)}
 
 								<ClayLink
 									className="ml-3"
@@ -343,6 +357,7 @@ BulkActions.propTypes = {
 	),
 	handleCheckboxClick: PropTypes.func.isRequired,
 	items: PropTypes.array.isRequired,
+	onClear: PropTypes.func.isRequired,
 	selectedItemsKey: PropTypes.string.isRequired,
 	selectedItemsValue: PropTypes.array.isRequired,
 	total: PropTypes.number,

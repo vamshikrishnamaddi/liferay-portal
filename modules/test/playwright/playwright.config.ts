@@ -52,6 +52,7 @@ import {config as dynamicDataMappingFormWebConfig} from './tests/dynamic-data-ma
 import {config as exportImportWebConfig} from './tests/export-import-web/config';
 import {config as featureFlagWebConfig} from './tests/feature-flag-web/config';
 import {config as fragmentWebConfig} from './tests/fragment-web/config';
+import {config as friendlyURLConfig} from './tests/friendly-url-web/config';
 import {config as frontendDataSetAdminWebConfig} from './tests/frontend-data-set-admin-web/config';
 import {config as frontendDataSetWebConfig} from './tests/frontend-data-set-web/config';
 import {config as frontendEditorCKEditorWebConfig} from './tests/frontend-editor-ckeditor-web/config';
@@ -116,8 +117,10 @@ import {config as siteAdminWebConfig} from './tests/site-admin-web/config';
 import {config as siteCmsSiteInitializerConfig} from './tests/site-cms-site-initializer/config';
 import {config as siteNavigationAdminWebConfig} from './tests/site-navigation-admin-web/config';
 import {config as siteNavigationBreadcrumbWebConfig} from './tests/site-navigation-breadcrumb-web/config';
+import {config as siteNavigationDirectoryWebConfig} from './tests/site-navigation-directory-web/config';
 import {config as siteNavigationLanguageWebConfig} from './tests/site-navigation-language-web/config';
-import {config as stableConfig} from './tests/stable/config';
+import {config as siteNavigationMenuWebConfig} from './tests/site-navigation-menu-web/config';
+import {config as smokeConfig} from './tests/smoke/config';
 import {config as stagingConfig} from './tests/staging-configuration-web/config';
 import {config as stylebookWebConfig} from './tests/style-book-web/config';
 import {config as templateWebConfig} from './tests/template-web/config';
@@ -183,6 +186,7 @@ export default defineConfig({
 		exportImportWebConfig,
 		featureFlagWebConfig,
 		fragmentWebConfig,
+		friendlyURLConfig,
 		frontendDataSetAdminWebConfig,
 		frontendDataSetWebConfig,
 		frontendEditorCKEditorWebConfig,
@@ -245,8 +249,10 @@ export default defineConfig({
 		siteCmsSiteInitializerConfig,
 		siteNavigationAdminWebConfig,
 		siteNavigationBreadcrumbWebConfig,
+		siteNavigationDirectoryWebConfig,
 		siteNavigationLanguageWebConfig,
-		stableConfig,
+		siteNavigationMenuWebConfig,
+		smokeConfig,
 		stagingConfig,
 		stylebookWebConfig,
 		templateWebConfig,

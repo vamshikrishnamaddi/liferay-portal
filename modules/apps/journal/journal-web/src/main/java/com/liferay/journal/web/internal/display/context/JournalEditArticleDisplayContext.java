@@ -6,7 +6,7 @@
 package com.liferay.journal.web.internal.display.context;
 
 import com.liferay.asset.display.page.constants.AssetDisplayPageConstants;
-import com.liferay.asset.display.page.item.selector.criterion.AssetDisplayPageSelectorCriterion;
+import com.liferay.asset.display.page.item.selector.AssetDisplayPageSelectorCriterion;
 import com.liferay.asset.display.page.model.AssetDisplayPageEntry;
 import com.liferay.asset.display.page.service.AssetDisplayPageEntryLocalServiceUtil;
 import com.liferay.depot.model.DepotEntryGroupRel;
@@ -1771,7 +1771,7 @@ public class JournalEditArticleDisplayContext {
 	}
 
 	private boolean _isShowPublishModal() throws PortalException {
-		if (_article == null) {
+		if ((_article == null) || (_article.getId() == 0)) {
 			return true;
 		}
 

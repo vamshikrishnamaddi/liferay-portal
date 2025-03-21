@@ -17,14 +17,18 @@ import com.liferay.osgi.util.ServiceTrackerFactory;
 import com.liferay.petra.concurrent.DCLSingleton;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.json.validator.JSONValidatorException;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutSet;
 import com.liferay.portal.kernel.model.PortletConstants;
+import com.liferay.portal.kernel.model.Theme;
 import com.liferay.portal.kernel.resource.bundle.ResourceBundleLoader;
 import com.liferay.portal.kernel.resource.bundle.ResourceBundleLoaderUtil;
+import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.URLUtil;
@@ -64,12 +68,54 @@ public class FrontendTokenDefinitionRegistryImpl
 	implements FrontendTokenDefinitionRegistry {
 
 	@Override
+	public FrontendTokenDefinition getFrontendTokenDefinition(Layout layout)
+		throws PortalException {
+
+		String cetExternalReferenceCode = _getCETExternalReferenceCode(
+			layout.getClassNameId(), layout.getClassPK());
+
+		if (cetExternalReferenceCode != null) {
+			return _getThemeCSSCETFrontendTokenDefinition(
+				layout.getCompanyId(), cetExternalReferenceCode);
+		}
+
+		if (layout.getMasterLayoutPlid() > 0) {
+			Layout masterLayout = _layoutLocalService.getLayout(
+				layout.getMasterLayoutPlid());
+
+			cetExternalReferenceCode = _getCETExternalReferenceCode(
+				masterLayout.getClassNameId(), masterLayout.getClassPK());
+
+			if (cetExternalReferenceCode != null) {
+				return _getThemeCSSCETFrontendTokenDefinition(
+					masterLayout.getCompanyId(), cetExternalReferenceCode);
+			}
+		}
+
+		LayoutSet layoutSet = layout.getLayoutSet();
+
+		cetExternalReferenceCode = _getCETExternalReferenceCode(
+			_portal.getClassNameId(LayoutSet.class),
+			layoutSet.getLayoutSetId());
+
+		if (cetExternalReferenceCode != null) {
+			return _getThemeCSSCETFrontendTokenDefinition(
+				layoutSet.getCompanyId(), cetExternalReferenceCode);
+		}
+
+		Theme theme = layout.getTheme();
+
+		return _getBundleFrontendTokenDefinition(theme.getThemeId());
+	}
+
 	public FrontendTokenDefinition getFrontendTokenDefinition(
 		LayoutSet layoutSet) {
 
 		return _getFrontendTokenDefinition(
 			layoutSet.getCompanyId(),
-			_getCETExternalReferenceCode(layoutSet.getLayoutSetId()),
+			_getCETExternalReferenceCode(
+				_portal.getClassNameId(LayoutSet.class),
+				layoutSet.getLayoutSetId()),
 			layoutSet.getThemeId());
 	}
 
@@ -304,10 +350,26 @@ public class FrontendTokenDefinitionRegistryImpl
 		}
 	}
 
-	private String _getCETExternalReferenceCode(long layoutSetId) {
+	private FrontendTokenDefinition _getBundleFrontendTokenDefinition(
+		String themeId) {
+
+		Map<String, FrontendTokenDefinition> frontendTokenDefinitions =
+			_frontendTokenDefinitionsDCLSingleton.getSingleton(
+				() -> {
+					_bundleTracker.open();
+
+					return _frontendTokenDefinitions;
+				});
+
+		return frontendTokenDefinitions.get(themeId);
+	}
+
+	private String _getCETExternalReferenceCode(
+		long classNameId, long classPK) {
+
 		ClientExtensionEntryRel clientExtensionEntryRel =
 			_clientExtensionEntryRelLocalService.fetchClientExtensionEntryRel(
-				_portal.getClassNameId(LayoutSet.class), layoutSetId,
+				classNameId, classPK,
 				ClientExtensionEntryConstants.TYPE_THEME_CSS);
 
 		if (clientExtensionEntryRel == null) {
@@ -321,26 +383,16 @@ public class FrontendTokenDefinitionRegistryImpl
 		long companyId, String externalReferenceCode, String themeId) {
 
 		if (externalReferenceCode != null) {
-			Map<String, FrontendTokenDefinition> frontendTokenDefinitions =
-				_getFrontendTokenDefinitions(companyId);
-
 			FrontendTokenDefinition frontendTokenDefinition =
-				frontendTokenDefinitions.get(externalReferenceCode);
+				_getThemeCSSCETFrontendTokenDefinition(
+					companyId, externalReferenceCode);
 
 			if (frontendTokenDefinition != null) {
 				return frontendTokenDefinition;
 			}
 		}
 
-		Map<String, FrontendTokenDefinition> frontendTokenDefinitions =
-			_frontendTokenDefinitionsDCLSingleton.getSingleton(
-				() -> {
-					_bundleTracker.open();
-
-					return _frontendTokenDefinitions;
-				});
-
-		return frontendTokenDefinitions.get(themeId);
+		return _getBundleFrontendTokenDefinition(themeId);
 	}
 
 	private String _getFrontendTokenDefinitionJSON(Bundle bundle) {
@@ -365,6 +417,15 @@ public class FrontendTokenDefinitionRegistryImpl
 
 		return _frontendTokenDefinitionsMap.getOrDefault(
 			companyId, new ConcurrentHashMap<>());
+	}
+
+	private FrontendTokenDefinition _getThemeCSSCETFrontendTokenDefinition(
+		long companyId, String externalReferenceCode) {
+
+		Map<String, FrontendTokenDefinition> frontendTokenDefinitions =
+			_getFrontendTokenDefinitions(companyId);
+
+		return frontendTokenDefinitions.get(externalReferenceCode);
 	}
 
 	private void _removedService(ThemeCSSCET themeCSSCET) {
@@ -447,6 +508,9 @@ public class FrontendTokenDefinitionRegistryImpl
 		_frontendTokenDefinitionsDCLSingleton = new DCLSingleton<>();
 	private final Map<Long, Map<String, FrontendTokenDefinition>>
 		_frontendTokenDefinitionsMap = new ConcurrentHashMap<>();
+
+	@Reference
+	private LayoutLocalService _layoutLocalService;
 
 	@Reference
 	private Portal _portal;
