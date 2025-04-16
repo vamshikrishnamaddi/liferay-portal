@@ -246,7 +246,7 @@ public class TaxonomyVocabularyResourceImpl
 			Pagination pagination, Sort[] sorts)
 		throws Exception {
 
-		return _getTaxonomyVocabulariesPage(
+		return _getSiteTaxonomyVocabulariesPage(
 			HashMapBuilder.put(
 				"create",
 				addAction(
@@ -865,6 +865,33 @@ public class TaxonomyVocabularyResourceImpl
 		assetVocabularySettingsHelper.setMultiValued(multiValued);
 
 		return assetVocabularySettingsHelper.toString();
+	}
+
+	private Page<TaxonomyVocabulary> _getSiteTaxonomyVocabulariesPage(
+			Map<String, Map<String, String>> actions, Long groupId,
+			String search, Aggregation aggregation, Filter filter,
+			Pagination pagination, Sort[] sorts)
+		throws Exception {
+
+		return SearchUtil.search(
+			actions,
+			booleanQuery -> {
+			},
+			filter, AssetVocabulary.class.getName(), search, pagination,
+			queryConfig -> queryConfig.setSelectedFieldNames(
+				Field.ASSET_VOCABULARY_ID),
+			searchContext -> {
+				searchContext.addVulcanAggregation(aggregation);
+				searchContext.setCompanyId(contextCompany.getCompanyId());
+				searchContext.setGroupIds(
+					SiteConnectedGroupGroupProviderUtil.
+						getCurrentAndDepotGroupIds(groupId));
+			},
+			sorts,
+			document -> _toTaxonomyVocabulary(
+				_assetVocabularyService.getVocabulary(
+					GetterUtil.getLong(
+						document.get(Field.ASSET_VOCABULARY_ID)))));
 	}
 
 	private Page<TaxonomyVocabulary> _getTaxonomyVocabulariesPage(

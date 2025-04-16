@@ -104,6 +104,17 @@ public class SiteConnectedGroupGroupProviderUtil {
 				groupIds, checkContentSharingWithChildrenEnabled);
 	}
 
+	public static long[] getCurrentAndDepotGroupIds(long groupId)
+		throws PortalException {
+
+		SiteConnectedGroupGroupProvider siteConnectedGroupGroupProvider =
+			_siteConnectedGroupGroupProviderUtil.
+				_getSiteConnectedGroupGroupProvider();
+
+		return siteConnectedGroupGroupProvider.getCurrentAndDepotGroupIds(
+			groupId);
+	}
+
 	private SiteConnectedGroupGroupProviderUtil() {
 		Bundle bundle = FrameworkUtil.getBundle(
 			SiteConnectedGroupGroupProviderUtil.class);

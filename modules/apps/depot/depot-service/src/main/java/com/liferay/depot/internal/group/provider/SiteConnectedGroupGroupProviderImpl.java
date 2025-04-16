@@ -116,6 +116,18 @@ public class SiteConnectedGroupGroupProviderImpl
 			ListUtil.toLongArray(depotEntries, DepotEntry::getGroupId));
 	}
 
+	@Override
+	public long[] getCurrentAndDepotGroupIds(long groupId)
+		throws PortalException {
+
+		return ArrayUtil.append(
+			ListUtil.toLongArray(
+				_depotEntryLocalService.getGroupConnectedDepotEntries(
+					groupId, QueryUtil.ALL_POS, QueryUtil.ALL_POS),
+				DepotEntry::getGroupId),
+			groupId);
+	}
+
 	@Reference
 	private DepotEntryLocalService _depotEntryLocalService;
 
