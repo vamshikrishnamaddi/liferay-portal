@@ -7,10 +7,12 @@ import {Locator, Page, expect} from '@playwright/test';
 
 import {liferayConfig} from '../../liferay.config';
 import {waitForAlert} from '../../utils/waitForAlert';
+import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
 
 export class AccountSettingsPage {
 	readonly accountSettingsMenuItem: Locator;
 	readonly currentPasswordInput: Locator;
+	readonly applicationsMenuPage: ApplicationsMenuPage;
 	private readonly displayMenuItem: Locator;
 	readonly formSubmitButton: Locator;
 	readonly languageSelect: Locator;
@@ -31,6 +33,7 @@ export class AccountSettingsPage {
 	readonly userPersonalMenuButton: Locator;
 
 	constructor(page: Page) {
+		this.applicationsMenuPage = new ApplicationsMenuPage(page);
 		this.accountSettingsMenuItem = page.getByRole('menuitem', {
 			name: 'Account Settings',
 		});
@@ -80,6 +83,29 @@ export class AccountSettingsPage {
 		this.timeZoneSelect = page.getByLabel('Time Zone');
 		this.userDisplayData = page.getByText('User Display Data');
 		this.userPersonalMenuButton = page.getByTitle('User Profile Menu');
+	}
+
+	async updateUserImageMaxFileSizeInInstanceSettings(
+		maxFileSize: string | number
+	) {
+		await this.applicationsMenuPage.goToInstanceSettings();
+
+		await this.page.getByRole('link', {name: 'Users'}).click();
+
+		await this.page.getByRole('menuitem', {name: 'User Images'}).click();
+
+		const maxFileSizeInput = this.page.getByLabel('Maximum File Size');
+
+		await expect(maxFileSizeInput).toBeVisible();
+
+		await maxFileSizeInput.fill(String(maxFileSize));
+
+		await this.page.getByRole('button', {name: /^(Save|Update)$/}).click();
+
+		await waitForAlert(
+			this.page,
+			'Success:Your request completed successfully.'
+		);
 	}
 
 	async goToAccountSettings() {
